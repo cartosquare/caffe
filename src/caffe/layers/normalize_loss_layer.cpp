@@ -54,7 +54,7 @@ void NormalizeLossLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
     }
   }
 
-  top[0]->mutable_cpu_data()[0] = total_error / count;
+  top[0]->mutable_cpu_data()[0] = total_error / n_visiables_;
 }
 
 template <typename Dtype>
