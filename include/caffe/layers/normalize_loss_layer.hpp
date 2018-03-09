@@ -36,6 +36,8 @@ class NormalizeLossLayer : public LossLayer<Dtype> {
     return true;
   }
 
+  virtual inline int ExactNumBottomBlobs() const { return 4; } 
+
  protected:
   /// @copydoc NormalizeLossLayer
   virtual void Forward_cpu(const vector<Blob<Dtype>*>& bottom,

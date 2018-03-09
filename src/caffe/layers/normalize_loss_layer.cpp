@@ -14,6 +14,7 @@ void NormalizeLossLayer<Dtype>::Reshape(const vector<Blob<Dtype>*>& bottom,
   CHECK_EQ(bottom[1]->count(1), bottom[2]->count(1) * 2)
       << "Inputs must have the same dimension.";
   CHECK_EQ(bottom[3]->count(1), 1) << "Last input must has dimension 1";
+
 }
 
 template <typename Dtype>
@@ -71,6 +72,7 @@ void NormalizeLossLayer<Dtype>::Backward_cpu(
   // only calculate predict diff
   Dtype* bottom_diff = bottom[0]->mutable_cpu_diff();
   const Dtype top_diff = top[0]->cpu_diff()[0];
+
   for (int i = 0; i < batch_size; ++i) {
     Dtype K = this->n_visiables_ * normalize_param[i];
     for (int j = 0; j < pts; ++j) {
@@ -88,8 +90,8 @@ void NormalizeLossLayer<Dtype>::Backward_cpu(
       } else {
         Dtype dist =
             sqrtf((p_x - g_x) * (p_x - g_x) + (p_y - g_y) * (p_y - g_y));
-        bottom_diff[i * sample_size + j * 2] = p_x / dist / K * top_diff;
-        bottom_diff[i * sample_size + j * 2 + 1] = p_y / dist / K * top_diff;
+        bottom_diff[i * sample_size + j * 2] = (p_x - g_x) / dist / K * top_diff;
+        bottom_diff[i * sample_size + j * 2 + 1] = (p_y - g_y) / dist / K * top_diff;
       }
     }
   }

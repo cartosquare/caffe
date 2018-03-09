@@ -8,10 +8,10 @@ namespace caffe {
 template <typename Dtype>
 void NormalizeLossLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
     const vector<Blob<Dtype>*>& top) {
-      const Dtype* predict = bottom[0]->gpu_data();
-      const Dtype* ground_truth = bottom[1]->gpu_data();
-      const Dtype* visiable = bottom[2]->gpu_data();
-      const Dtype* normalize_param = bottom[3]->gpu_data();
+      const Dtype* predict = bottom[0]->cpu_data();
+      const Dtype* ground_truth = bottom[1]->cpu_data();
+      const Dtype* visiable = bottom[2]->cpu_data();
+      const Dtype* normalize_param = bottom[3]->cpu_data();
     
       int batch_size = bottom[0]->shape(0);
       int sample_size = bottom[0]->shape(1);
@@ -46,18 +46,18 @@ void NormalizeLossLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
 template <typename Dtype>
 void NormalizeLossLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
     const vector<bool>& propagate_down, const vector<Blob<Dtype>*>& bottom) {
-      const Dtype* predict = bottom[0]->gpu_data();
-      const Dtype* ground_truth = bottom[1]->gpu_data();
-      const Dtype* visiable = bottom[2]->gpu_data();
-      const Dtype* normalize_param = bottom[3]->gpu_data();
+      const Dtype* predict = bottom[0]->cpu_data();
+      const Dtype* ground_truth = bottom[1]->cpu_data();
+      const Dtype* visiable = bottom[2]->cpu_data();
+      const Dtype* normalize_param = bottom[3]->cpu_data();
     
       int batch_size = bottom[0]->shape(0);
       int sample_size = bottom[0]->shape(1);
       int pts = sample_size / 2;
     
       // only calculate predict diff
-      Dtype* bottom_diff = bottom[0]->mutable_gpu_diff();
-      const Dtype top_diff = top[0]->gpu_diff()[0];
+      Dtype* bottom_diff = bottom[0]->mutable_cpu_diff();
+      const Dtype top_diff = top[0]->cpu_diff()[0];
       for (int i = 0; i < batch_size; ++i) {
         Dtype K = this->n_visiables_ * normalize_param[i];
         for (int j = 0; j < pts; ++j) {
@@ -75,8 +75,8 @@ void NormalizeLossLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
           } else {
             Dtype dist =
                 sqrtf((p_x - g_x) * (p_x - g_x) + (p_y - g_y) * (p_y - g_y));
-            bottom_diff[i * sample_size + j * 2] = p_x / dist / K * top_diff;
-            bottom_diff[i * sample_size + j * 2 + 1] = p_y / dist / K * top_diff;
+            bottom_diff[i * sample_size + j * 2] = (p_x - g_x) / dist / K * top_diff;
+            bottom_diff[i * sample_size + j * 2 + 1] = (p_y - g_y) / dist / K * top_diff;
           }
         }
       }
