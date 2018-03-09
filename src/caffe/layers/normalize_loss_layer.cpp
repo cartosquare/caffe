@@ -14,17 +14,15 @@ void NormalizeLossLayer<Dtype>::Reshape(const vector<Blob<Dtype>*>& bottom,
   CHECK_EQ(bottom[1]->count(1), bottom[2]->count(1) * 2)
       << "Inputs must have the same dimension.";
   CHECK_EQ(bottom[3]->count(1), 1) << "Last input must has dimension 1";
-
-  diff_.ReshapeLike(*bottom[0]);
 }
 
 template <typename Dtype>
 void NormalizeLossLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
                                             const vector<Blob<Dtype>*>& top) {
-  auto* predict = bottom[0]->mutable_cpu_data();
-  auto* ground_truth = bottom[1]->mutable_cpu_data();
-  auto* visiable = bottom[2]->mutable_cpu_data();
-  auto* normalize_param = bottom[3]->mutable_cpu_data();
+  const Dtype* predict = bottom[0]->cpu_data();
+  const Dtype* ground_truth = bottom[1]->cpu_data();
+  const Dtype* visiable = bottom[2]->cpu_data();
+  const Dtype* normalize_param = bottom[3]->cpu_data();
 
   int batch_size = bottom[0]->shape(0);
   int sample_size = bottom[0]->shape(1);
@@ -48,7 +46,7 @@ void NormalizeLossLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
       // calculate normalized distance
       Dtype dist = sqrtf((p_x - g_x) * (p_x - g_x) + (p_y - g_y) * (p_y - g_y));
       dist /= normalize_param[i];
-      
+
       total_error += dist;
       n_visiables_++;
     }
@@ -61,10 +59,10 @@ template <typename Dtype>
 void NormalizeLossLayer<Dtype>::Backward_cpu(
     const vector<Blob<Dtype>*>& top, const vector<bool>& propagate_down,
     const vector<Blob<Dtype>*>& bottom) {
-      auto* predict = bottom[0]->mutable_cpu_data();
-  auto* ground_truth = bottom[1]->mutable_cpu_data();
-  auto* visiable = bottom[2]->mutable_cpu_data();
-  auto* normalize_param = bottom[3]->mutable_cpu_data();
+  const Dtype* predict = bottom[0]->cpu_data();
+  const Dtype* ground_truth = bottom[1]->cpu_data();
+  const Dtype* visiable = bottom[2]->cpu_data();
+  const Dtype* normalize_param = bottom[3]->cpu_data();
 
   int batch_size = bottom[0]->shape(0);
   int sample_size = bottom[0]->shape(1);
@@ -72,7 +70,9 @@ void NormalizeLossLayer<Dtype>::Backward_cpu(
 
   // only calculate predict diff
   Dtype* bottom_diff = bottom[0]->mutable_cpu_diff();
+  const Dtype top_diff = top[0]->cpu_diff()[0];
   for (int i = 0; i < batch_size; ++i) {
+    Dtype K = this->n_visiables_ * normalize_param[i];
     for (int j = 0; j < pts; ++j) {
       Dtype p_x = predict[i * sample_size + j * 2];
       Dtype p_y = predict[i * sample_size + j * 2 + 1];
@@ -86,10 +86,10 @@ void NormalizeLossLayer<Dtype>::Backward_cpu(
         bottom_diff[i * sample_size + j * 2] = 0;
         bottom_diff[i * sample_size + j * 2 + 1] = 0;
       } else {
-        Dtype dist = sqrtf((p_x - g_x) * (p_x - g_x) + (p_y - g_y) * (p_y - g_y));
-        Dtype K = this->n_visiables_ * normalize_param[i];
-        bottom_diff[i * sample_size + j * 2] = p_x / dist / K;
-        bottom_diff[i * sample_size + j * 2 + 1] = p_y / dist / K;
+        Dtype dist =
+            sqrtf((p_x - g_x) * (p_x - g_x) + (p_y - g_y) * (p_y - g_y));
+        bottom_diff[i * sample_size + j * 2] = p_x / dist / K * top_diff;
+        bottom_diff[i * sample_size + j * 2 + 1] = p_y / dist / K * top_diff;
       }
     }
   }

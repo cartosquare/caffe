@@ -23,7 +23,7 @@ template <typename Dtype>
 class NormalizeLossLayer : public LossLayer<Dtype> {
  public:
   explicit NormalizeLossLayer(const LayerParameter& param)
-      : LossLayer<Dtype>(param), diff_() {}
+      : LossLayer<Dtype>(param) {}
   virtual void Reshape(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top);
 
@@ -54,7 +54,6 @@ class NormalizeLossLayer : public LossLayer<Dtype> {
   virtual void Backward_gpu(const vector<Blob<Dtype>*>& top,
       const vector<bool>& propagate_down, const vector<Blob<Dtype>*>& bottom);
 
-  Blob<Dtype> diff_;
   int n_visiables_;
 };
 
